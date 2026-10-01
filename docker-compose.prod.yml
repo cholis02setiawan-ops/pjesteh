@@ -1,0 +1,130 @@
+# Docker Compose untuk Produksi
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/esteh
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: esteh
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node dist/worker.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/esteh
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+    secrets:
+      - db_password
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d
+      - ./infra/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - api
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost/health"]
+
+  cadangan:
+    image: postgres:16-alpine
+    command: >
+      sh -c "pg_dump -h db -U postgres esteh | gzip > /backups/esteh-$$(date +%Y%m%d-%H%M%S).sql.gz && ls -la /backups/"
+    volumes:
+      - ./infra/backup:/backups
+    environment:
+      PGPASSWORD_FILE: /run/secrets/db_password
+    profiles:
+      - backup
+    deploy:
+      mode: global
+      schedule: "0 2 * * *"
+
+volumes:
+  pgdata:
+  redisdata:
+
+secrets:
+  db_password:
+    external: true
+  jwt_secret:
+    external: true
+  jwt_refresh_secret:
+    external: true

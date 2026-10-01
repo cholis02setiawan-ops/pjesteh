@@ -1,0 +1,53 @@
+name: Bug
+description: Laporkan bug yang ditemukan
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Informasi Reproduksi
+        Jelaskan langkah-langkah untuk mereproduksi bug.
+  - type: textarea
+    attributes:
+      label: Langkah Reproduksi
+      description: |
+        1. Buka ...
+        2. Klik ...
+        3. Hasilnya ...
+      placeholder: |
+        1. Buka menu QR
+        2. Pilih produk
+        3. Klik checkout
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Perilaku yang Diharapkan
+      placeholder: "Seharusnya ..."
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Perilaku Aktual
+      placeholder: "Yang terjadi adalah ..."
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Lingkungan
+      placeholder: "Browser, OS, Perangkat, Outlet"
+  - type: textarea
+    attributes:
+      label: Screenshot/Log
+      placeholder: "Lampirkan screenshot atau log jika relevan"
+
+---
+
+## Validasi
+
+- [ ] `pnpm lint`
+- [ ] `pnpm exec tsc --noEmit`
+- [ ] `pnpm build`
+- [ ] Deskripsi dampak produksi
+
+Closes #

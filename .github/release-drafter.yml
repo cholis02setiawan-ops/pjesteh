@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema/release-drafter.json",
+  "categories": [
+    {
+      "title": "🚀 Fitur Baru",
+      "labels": ["feature"]
+    },
+    {
+      "title": "🐛 Perbaikan Bug",
+      "labels": ["bug", "fix"]
+    },
+    {
+      "title": "📚 Dokumentasi",
+      "labels": ["docs"]
+    },
+    {
+      "title": "🔒 Keamanan",
+      "labels": ["security"]
+    },
+    {
+      "title": "♻️ Refaktor",
+      "labels": ["refactor"]
+    },
+    {
+      "title": "⚡ Performa",
+      "labels": ["performance"]
+    }
+  ],
+  "change-template": "- $TITLE (#$NUMBER) by @$AUTHOR",
+  "version-template": "$RESOLVED_VERSION",
+  "tag-template": "v$RESOLVED_VERSION"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "esteh-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @esteh/web dev",
+    "build": "pnpm -r --parallel build",
+    "lint": "pnpm -r --parallel lint",
+    "test": "pnpm -r --parallel test",
+    "db:migrate": "pnpm --filter @esteh/api run prisma:migrate",
+    "db:seed": "pnpm --filter @esteh/api run db:seed",
+    "db:studio": "pnpm --filter @esteh/api run db:studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20"
+  }
+}

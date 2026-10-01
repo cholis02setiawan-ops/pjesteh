@@ -1,0 +1,54 @@
+name: Dependency & Secret Scanning
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Every Monday at 9 AM
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  checks: write
+  id-token: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check for outdated dependencies
+        run: pnpm outdated --level=minor
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=moderate
+
+  secret-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for secrets in git history
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified --directory .
+
+  codeql-scheduled:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: typescript
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:typescript"

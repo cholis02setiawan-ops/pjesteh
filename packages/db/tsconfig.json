@@ -1,0 +1,16 @@
+{
+  "name": "@esteh/db",
+  "source": "./src/index.ts",
+  "outDir": "./dist",
+  "rootDir": "./src",
+  "strict": true,
+  "noEmit": true,
+  "esModuleInterop": true,
+  "module": "ESNext",
+  "moduleResolution": "bundler",
+  "skipLibCheck": true,
+  "paths": {
+    "@esteh/domain": ["../domain/src"],
+    "@esteh/money": ["../money/src"]
+  }
+}

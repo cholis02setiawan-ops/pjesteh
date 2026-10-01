@@ -1,0 +1,15 @@
+{
+  "name": "@esteh/money",
+  "source": "./src/index.ts",
+  "outDir": "./dist",
+  "rootDir": "./src",
+  "strict": true,
+  "noEmit": true,
+  "esModuleInterop": true,
+  "module": "ESNext",
+  "moduleResolution": "bundler",
+  "skipLibCheck": true,
+  "test": {
+    "include": ["__tests__/**/*.test.ts"]
+  }
+}

@@ -1,0 +1,13 @@
+name: "Esteh Platform - Sprint"
+description: "Board sprint untuk pengembangan platform es teh"
+columns:
+  - name: Backlog
+    description: "Fitur dan bug yang belum dikerjakan"
+  - name: In Progress
+    description: "Sedang dikerjakan"
+  - name: Review
+    description: "Menunggu review"
+  - name: Done
+    description: "Selesai"
+
+defaultColumn: Backlog

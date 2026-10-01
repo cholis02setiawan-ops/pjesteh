@@ -1,0 +1,25 @@
+{
+  "name": "@esteh/api",
+  "source": "./src/main.ts",
+  "outDir": "./dist",
+  "rootDir": "./src",
+  "strict": true,
+  "noEmit": false,
+  "esModuleInterop": true,
+  "module": "ESNext",
+  "moduleResolution": "bundler",
+  "skipLibCheck": true,
+  "paths": {
+    "@/*": ["./src/*"],
+    "@esteh/domain": ["../../domain/src"],
+    "@esteh/money": ["../../money/src"],
+    "@esteh/db": ["../../db/src"]
+  },
+  "test": {
+    "include": ["__tests__/**/*.test.ts"],
+    "coverage": {
+      "provider": "v8",
+      "reporter": ["text", "html"]
+    }
+  }
+}

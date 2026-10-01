@@ -1,0 +1,874 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Tenant ───────────────────────────────────────────────────────────
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  outlets     Outlet[]
+  users       User[]
+
+  @@map("tenants")
+  @@index([slug])
+}
+
+// ─── Outlet ───────────────────────────────────────────────────────────
+model Outlet {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  code        String
+  name        String
+  address     String
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  areas       Area[]
+  tables      Table[]
+  products    Product[]
+  users       User[]
+  shifts      Shift[]
+  orders      OrderHeader[]
+  journals    JournalEntry[]
+  reservations Reservation[]
+  deliveries  Delivery[]
+  stockMovements StockMovement[]
+
+  @@map("outlets")
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+// ─── Area ─────────────────────────────────────────────────────────────
+model Area {
+  id        String   @id @default(uuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id])
+  name      String
+  capacity  Int
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  @@map("areas")
+  @@unique([outletId, name])
+}
+
+// ─── Table ────────────────────────────────────────────────────────────
+model Table {
+  id        String   @id @default(uuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id])
+  code      String
+  name      String
+  seats     Int
+  isActive  Boolean  @default(true)
+
+  @@map("tables")
+  @@unique([outletId, code])
+}
+
+// ─── User ─────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
+  username  String
+  email     String?
+  passwordHash String
+  fullName  String
+  role      UserRole
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  Session[]
+  audits    AuditLog[]
+
+  @@map("users")
+  @@unique([tenantId, username])
+  @@index([tenantId, outletId])
+}
+
+enum UserRole {
+  CASHIER
+  BARISTA
+  COURIER
+  SUPERVISOR
+  FINANCE
+  OWNER
+  ADMIN
+}
+
+// ─── Session ──────────────────────────────────────────────────────────
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  refreshToken String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  @@map("sessions")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  outletId  String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  traceId   String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+  @@index([tenantId, createdAt])
+}
+
+// ─── Category ─────────────────────────────────────────────────────────
+model Category {
+  id        String   @id @default(uuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id])
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  products  Product[]
+
+  @@map("categories")
+  @@unique([outletId, name])
+}
+
+// ─── Product ──────────────────────────────────────────────────────────
+model Product {
+  id              String      @id @default(uuid())
+  outletId        String
+  outlet          Outlet      @relation(fields: [outletId], references: [id])
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  sku             String
+  name            String
+  type            ProductType
+  basePrice       BigDecimal
+  imageUrl        String?
+  isActive        Boolean     @default(true)
+  durabilityMinutes Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  variants        ProductVariant[]
+  barcodes        ProductBarcode[]
+  orderLines      OrderLine[]
+  recipeLines     RecipeLine[]
+  stockMovements  StockMovement[]
+
+  @@map("products")
+  @@unique([outletId, sku])
+}
+
+enum ProductType {
+  BEVERAGE
+  FOOD
+  PACKAGED
+}
+
+// ─── Product Variant ──────────────────────────────────────────────────
+model ProductVariant {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  name        String
+  priceDelta  BigDecimal @default("0")
+  isActive    Boolean  @default(true)
+  orderLines  OrderLine[]
+
+  @@map("product_variants")
+  @@unique([productId, name])
+}
+
+// ─── Product Barcode ──────────────────────────────────────────────────
+model ProductBarcode {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  barcode    String
+  type       BarcodeType
+
+  @@map("product_barcodes")
+  @@unique([productId, barcode])
+  @@unique([barcode])
+}
+
+enum BarcodeType {
+  EAN13
+  QR
+}
+
+// ─── Ingredient ────────────────────────────────────────────────────────
+model Ingredient {
+  id              String          @id @default(uuid())
+  outletId        String
+  outlet          Outlet          @relation(fields: [outletId], references: [id])
+  name            String
+  unit            String
+  unitCost        BigDecimal
+  minStock        BigDecimal
+  reorderPoint    BigDecimal
+  stockBalance    BigDecimal
+  stockValue      BigDecimal
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  recipeLines     RecipeLine[]
+  stockMovements  StockMovement[]
+
+  @@map("ingredients")
+  @@unique([outletId, name])
+}
+
+// ─── Recipe Line ──────────────────────────────────────────────────────
+model RecipeLine {
+  id            String      @id @default(uuid())
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  ingredientId  String
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+  quantity      BigDecimal
+  unit          String
+
+  @@map("recipe_lines")
+  @@unique([productId, ingredientId])
+}
+
+// ─── Stock Balance ────────────────────────────────────────────────────
+model StockBalance {
+  id             String      @id @default(uuid())
+  ingredientId   String
+  ingredient     Ingredient  @relation(fields: [ingredientId], references: [id])
+  quantity       BigDecimal
+  unitCost       BigDecimal
+  value          BigDecimal
+  updatedAt      DateTime    @updatedAt
+
+  @@map("stock_balances")
+}
+
+// ─── Stock Movement ───────────────────────────────────────────────────
+model StockMovement {
+  id            String      @id @default(uuid())
+  tenantId      String
+  outletId      String
+  ingredientId  String
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+  refType       MovementType
+  refId         String
+  quantityIn    BigDecimal  @default("0")
+  quantityOut   BigDecimal  @default("0")
+  unitCost      BigDecimal
+  balanceQty    BigDecimal
+  balanceValue  BigDecimal
+  note          String?
+  createdAt     DateTime    @default(now())
+
+  @@map("stock_movements")
+  @@index([tenantId, createdAt])
+}
+
+enum MovementType {
+  SALE
+  PURCHASE
+  OPNAME
+  WASTE
+  TRANSFER
+  ADJUSTMENT
+}
+
+// ─── Order ────────────────────────────────────────────────────────────
+model OrderHeader {
+  id              String      @id @default(uuid())
+  tenantId        String
+  outletId        String
+  outlet          Outlet      @relation(fields: [outletId], references: [id])
+  orderNumber     String
+  channel         OrderChannel
+  status          OrderStatus
+  shiftId         String?
+  tableSessionId  String?
+  customerId      String?
+  customer        Customer?   @relation(fields: [customerId], references: [id])
+  subtotal        BigDecimal
+  discountTotal   BigDecimal  @default("0")
+  taxTotal        BigDecimal  @default("0")
+  serviceCharge   BigDecimal  @default("0")
+  deliveryFee     BigDecimal  @default("0")
+  grandTotal      BigDecimal
+  amountPaid      BigDecimal  @default("0")
+  amountDue       BigDecimal
+  idempotencyKey  String?
+  placedAt        DateTime
+  confirmedAt     DateTime?
+  voidedAt        DateTime?
+  voidReason      String?
+  voidedBy        String?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  cancelledBy     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  lines           OrderLine[]
+  payments        Payment[]
+  events          DomainEvent[]
+
+  @@map("order_headers")
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId, outletId, status])
+  @@index([tenantId, idempotencyKey])
+}
+
+enum OrderChannel {
+  QR
+  POS
+  WEB
+  DELIVERY
+}
+
+enum OrderStatus {
+  DRAFT
+  WAITING_PAYMENT
+  AWAITING_CONFIRMATION
+  CONFIRMED
+  PREPARING
+  READY
+  IN_PROGRESS
+  PICKED_UP
+  DELIVERED
+  COMPLETED
+  REFUNDED
+  CANCELLED
+  FAILED
+  EXPIRED
+}
+
+model OrderLine {
+  id          String      @id @default(uuid())
+  orderId     String
+  order       OrderHeader @relation(fields: [orderId], references: [id])
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  qty         Int
+  unitPrice   BigDecimal
+  unitCost    BigDecimal  @default("0")
+  lineDiscount BigDecimal @default("0")
+  lineTotal   BigDecimal
+  note        String?
+  createdAt   DateTime    @default(now())
+  modifiers   OrderLineModifier[]
+
+  @@map("order_lines")
+}
+
+model OrderLineModifier {
+  id            String      @id @default(uuid())
+  orderLineId   String
+  orderLine     OrderLine   @relation(fields: [orderLineId], references: [id])
+  modifierGroupId String
+  optionId      String
+  optionName    String
+  priceDelta    BigDecimal
+
+  @@map("order_line_modifiers")
+}
+
+// ─── Payment ──────────────────────────────────────────────────────────
+model Payment {
+  id          String      @id @default(uuid())
+  tenantId    String
+  payableType PayableType
+  payableId   String
+  method      PaymentMethod
+  amount      BigDecimal
+  feeAmount   BigDecimal  @default("0")
+  status      PaymentStatus
+  gatewayRef  String?
+  issuedAt    DateTime
+  settledAt   DateTime?
+  order       OrderHeader? @relation(fields: [orderId], references: [id])
+  orderId     String?
+  createdAt   DateTime    @default(now())
+
+  @@map("payments")
+  @@index([tenantId, payableType, payableId])
+  @@index([tenantId, method, status])
+}
+
+enum PayableType {
+  ORDER
+  RESERVATION
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  VA
+  E_WALLET
+  CARD
+  VOUCHER
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  SETTLED
+  FAILED
+  REFUNDED
+}
+
+// ─── Shift ────────────────────────────────────────────────────────────
+model Shift {
+  id          String   @id @default(uuid())
+  tenantId    String
+  outletId    String
+  outlet      Outlet  @relation(fields: [outletId], references: [id])
+  shiftNumber Int
+  staffId     String
+  staff       User    @relation(fields: [staffId], references: [id])
+  openedAt    DateTime
+  openedBy    String
+  openedFloat BigDecimal
+  countedCash BigDecimal?
+  expectedCash BigDecimal
+  closedAt    DateTime?
+  closedBy    String?
+  variance    BigDecimal?
+  status      ShiftStatus
+  totalSales  BigDecimal @default("0")
+  paymentCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cashMoves   CashMovement[]
+  orders      OrderHeader[]
+
+  @@map("shifts")
+  @@unique([tenantId, outletId, shiftNumber])
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+}
+
+model CashMovement {
+  id        String   @id @default(uuid())
+  tenantId  String
+  shiftId   String
+  shift     Shift   @relation(fields: [shiftId], references: [id])
+  type      MovementType
+  amount    BigDecimal
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@map("cash_movements")
+}
+
+// ─── Reservation ──────────────────────────────────────────────────────
+model Reservation {
+  id              String         @id @default(uuid())
+  tenantId        String
+  outletId        String
+  outlet          Outlet         @relation(fields: [outletId], references: [id])
+  areaId          String
+  bookingCode     String         @unique
+  customerId      String?
+  customer        Customer?      @relation(fields: [customerId], references: [id])
+  bookingDate     DateTime
+  bookingTime     DateTime
+  partySize       Int
+  status          ReservationStatus
+  depositRequired BigDecimal
+  depositPaid     BigDecimal     @default("0")
+  depositApplied  BigDecimal     @default("0")
+  depositForfeited BigDecimal    @default("0")
+  policyVersionId String?
+  paymentDueAt    DateTime?
+  specialRequest  String?
+  arrivedAt       DateTime?
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  noShowAt        DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  events          DomainEvent[]
+
+  @@map("reservations")
+  @@unique([tenantId, bookingCode])
+  @@index([tenantId, bookingDate, bookingTime])
+}
+
+enum ReservationStatus {
+  DRAFT
+  PENDING_DEPOSIT
+  CONFIRMED
+  SEATED
+  NO_SHOW
+  CANCELLED
+  COMPLETED
+  EXPIRED
+  REFUNDED
+}
+
+// ─── Customer ─────────────────────────────────────────────────────────
+model Customer {
+  id         String   @id @default(uuid())
+  tenantId   String
+  outletId   String?
+  name       String
+  phone      String?
+  email      String?
+  points     Int      @default(0)
+  totalSpend BigDecimal @default("0")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("customers")
+  @@index([tenantId, phone])
+}
+
+// ─── Deposit Policy ───────────────────────────────────────────────────
+model DepositPolicy {
+  id              String      @id @default(uuid())
+  tenantId        String
+  outletId        String?
+  name            String
+  calcMethod      DepositCalcMethod
+  value           BigDecimal
+  minAmount       BigDecimal?
+  maxAmount       BigDecimal?
+  minPartySize    Int
+  scope           Json
+  paymentWindowMin Int
+  onArrival       OnArrivalRule
+  priority        Int
+  currentVersion  Boolean     @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  versions        DepositPolicyVersion[]
+  reservations    Reservation[]
+
+  @@map("deposit_policies")
+}
+
+enum DepositCalcMethod {
+  NONE
+  FLAT
+  PERCENT
+  PER_PAX
+}
+
+enum OnArrivalRule {
+  DEDUCT
+  FORFEIT
+  PARTIAL
+}
+
+model DepositPolicyVersion {
+  id            String         @id @default(uuid())
+  policyId      String
+  policy        DepositPolicy  @relation(fields: [policyId], references: [id])
+  version       Int
+  calcMethod    DepositCalcMethod
+  value         BigDecimal
+  minAmount     BigDecimal?
+  maxAmount     BigDecimal?
+  minPartySize  Int
+  scope         Json
+  paymentWindowMin Int
+  onArrival     OnArrivalRule
+  cancellationTiers Json
+  priority      Int
+  effectiveFrom DateTime
+  effectiveUntil DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@map("deposit_policy_versions")
+  @@unique([policyId, version])
+}
+
+// ─── Domain Event (Outbox) ────────────────────────────────────────────
+model DomainEvent {
+  id          String      @id @default(uuid())
+  tenantId    String
+  eventType   String
+  payload     Json
+  status      EventStatus
+  retryCount  Int         @default(0)
+  processedAt DateTime?
+  createdAt   DateTime    @default(now())
+  orderId     String?
+
+  @@map("domain_events")
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, orderId])
+}
+
+enum EventStatus {
+  PENDING
+  SENT
+  PROCESSED
+  FAILED
+}
+
+// ─── Accounting ───────────────────────────────────────────────────────
+model AccountingPeriod {
+  id          String      @id @default(uuid())
+  tenantId    String
+  year        Int
+  month       Int
+  startDate   DateTime
+  endDate     DateTime
+  status      PeriodStatus
+  closedAt    DateTime?
+  closedBy    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  journals    JournalEntry[]
+
+  @@map("accounting_periods")
+  @@unique([tenantId, year, month])
+}
+
+enum PeriodStatus {
+  OPEN
+  SOFT_CLOSED
+  CLOSED
+}
+
+model ChartOfAccount {
+  id           String      @id @default(uuid())
+  tenantId     String
+  code         String
+  name         String
+  type         AccountType
+  normalBalance NormalBalance
+  parentId     String?
+  parent       ChartOfAccount? @relation("AccountTree", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountTree")
+  isPostable   Boolean      @default(false)
+  isCashEquivalent Boolean @default(false)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+
+  @@map("chart_of_accounts")
+  @@unique([tenantId, code])
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+model JournalEntry {
+  id          String      @id @default(uuid())
+  tenantId    String
+  entryNumber String
+  entryDate   DateTime
+  periodId    String
+  period      AccountingPeriod @relation(fields: [periodId], references: [id])
+  sourceType  String
+  sourceRef   String?
+  description String
+  status      EntryStatus
+  reversedBy  String?
+  reversedAt  DateTime?
+  reversedReason String?
+  totalDebit  BigDecimal
+  totalCredit BigDecimal
+  createdBy   String
+  createdAt   DateTime      @default(now())
+  postedAt    DateTime?
+  updatedAt   DateTime      @updatedAt
+  lines       JournalLine[]
+
+  @@map("journal_entries")
+  @@unique([tenantId, entryNumber])
+  @@index([tenantId, periodId, status])
+}
+
+model JournalLine {
+  id         String      @id @default(uuid())
+  entryId    String
+  entry      JournalEntry @relation(fields: [entryId], references: [id])
+  accountId  String
+  account    ChartOfAccount @relation(fields: [accountId], references: [id])
+  outletId   String?
+  debit      BigDecimal   @default("0")
+  credit     BigDecimal   @default("0")
+  lineNo     Int
+  memo       String?
+  createdAt  DateTime     @default(now())
+
+  @@map("journal_lines")
+}
+
+enum EntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+// ─── Promotion ────────────────────────────────────────────────────────
+model Promotion {
+  id          String      @id @default(uuid())
+  tenantId    String
+  outletId    String
+  name        String
+  code        String?
+  type        PromoType
+  value       BigDecimal
+  minOrder    BigDecimal?
+  maxDiscount BigDecimal?
+  validFrom   DateTime
+  validUntil  DateTime
+  isActive    Boolean     @default(true)
+  usageCount  Int         @default(0)
+  maxUsage    Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("promotions")
+  @@unique([tenantId, code])
+}
+
+enum PromoType {
+  PERCENT
+  FLAT
+  BUY_X_GET_Y
+}
+
+// ─── Loyalty ──────────────────────────────────────────────────────────
+model LoyaltyLedger {
+  id          String   @id @default(uuid())
+  tenantId    String
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  type        LoyaltyType
+  points      Int
+  balance     Int
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  @@map("loyalty_ledgers")
+}
+
+enum LoyaltyType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  ADJUSTED
+}
+
+// ─── Delivery ─────────────────────────────────────────────────────────
+model DeliveryZone {
+  id          String   @id @default(uuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id])
+  name        String
+  boundary    Json
+  pricingModel String
+  baseFee     BigDecimal
+  perKmFee    BigDecimal
+  isActive    Boolean  @default(true)
+
+  @@map("delivery_zones")
+}
+
+model Delivery {
+  id          String      @id @default(uuid())
+  tenantId    String
+  orderId     String
+  order       OrderHeader @relation(fields: [orderId], references: [id])
+  zoneId      String
+  zone        DeliveryZone @relation(fields: [zoneId], references: [id])
+  courierId   String?
+  courier     User?       @relation(fields: [courierId], references: [id])
+  distanceKm  BigDecimal
+  feeCharged  BigDecimal
+  courierCost BigDecimal
+  isCod       Boolean     @default(false)
+  codAmount   BigDecimal  @default("0")
+  status      DeliveryStatus
+  proofUrl    String?
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  events      DomainEvent[]
+
+  @@map("deliveries")
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  PICKED_UP
+  IN_PROGRESS
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+// ─── Settlement Batch ─────────────────────────────────────────────────
+model SettlementBatch {
+  id          String   @id @default(uuid())
+  tenantId    String
+  outletId    String
+  gateway     String
+  batchDate   DateTime
+  totalAmount BigDecimal
+  fees        BigDecimal
+  status      SettlementStatus
+  gatewayRef  String?
+  createdAt   DateTime @default(now())
+  settledAt   DateTime?
+
+  @@map("settlement_batches")
+}
+
+enum SettlementStatus {
+  PENDING
+  MATCHED
+  MISMATCH
+  RECONCILED
+}

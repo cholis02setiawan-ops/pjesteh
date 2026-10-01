@@ -1,0 +1,48 @@
+name: Feature
+description: Ajukan fitur baru atau peningkatan
+labels: ["feature"]
+body:
+  - type: textarea
+    attributes:
+      label: Deskripsi Fitur
+      description: Jelaskan apa yang ingin ditambahkan dan mengapa.
+      placeholder: "Fitur ini akan memungkinkan..."
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Kriteria Penerimaan
+      description: |
+        Definisikan kriteria penerimaan yang terukur.
+        Contoh: "Kasir dapat tutup shift dalam mode offline dan data tersinkron saat koneksi pulih"
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Dampak Domain
+      description: |
+        Apakah ada perubahan pada model data, aturan bisnis, atau alur uang?
+        Jika ya, jelaskan dampaknya secara spesifik.
+      validations:
+        required: true
+  - type: textarea
+    attributes:
+      label: Estimasi
+      description: Perkiraan waktu pengerjaan
+      placeholder: "2 hari"
+  - type: textarea
+    attributes:
+      label: Keputusan yang Diperlukan
+      description: Jika ada keputusan arsitektur yang perlu Anda tetapkan
+      placeholder: "Misalnya: 'Perlu putusan ADR tentang model pembayaran'"
+
+---
+
+## Validasi
+
+- [ ] Kriteria penerimaan dicatat dalam issue
+- [ ] Dampak domain dipahami
+- [ ] Perubahan skema punya migrasi
+- [ ] Uji coba relevan tersedia
+
+Closes #
