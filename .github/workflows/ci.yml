@@ -33,7 +33,7 @@ jobs:
           cache: pnpm
       - name: Cache pnpm modules
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pnpm-store
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
