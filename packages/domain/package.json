@@ -12,7 +12,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20"
+    "typescript": "^7",
+    "@types/node": "^26"
   }
 }
