@@ -1,5 +1,5 @@
-import { products, outlets } from "@/lib/data";
-import { formatIDR } from "@/lib/money";
+import { outlets } from "@/lib/data";
+import { MenuPreviewGrid } from "@/lib/MenuPreviewGrid";
 
 export default function Home() {
   return (
@@ -82,22 +82,7 @@ export default function Home() {
         <h3 className="font-semibold">Menu unggulan</h3>
         <a href="/m/KRW01/M03" className="text-sm text-teal-700 font-medium hover:underline">Lihat menu QR →</a>
       </div>
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {products.map(p=>(
-          <div key={p.id} className="rounded-2xl border border-stone-200 bg-white overflow-hidden hover:shadow-sm transition">
-            <div className="h-28 bg-gradient-to-br from-amber-50 to-teal-50 flex items-center justify-center text-4xl">{p.image}</div>
-            <div className="p-3">
-              <div className="text-xs px-2 py-0.5 rounded-full bg-stone-100 border border-stone-200 inline-block">{p.category}</div>
-              <div className="mt-1 font-semibold text-sm leading-tight">{p.name}</div>
-              <div className="text-xs text-stone-500 line-clamp-1">{p.sku} · Tahan {p.durability_minutes} menit</div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="font-bold text-sm">{formatIDR(p.price)}</span>
-                <span className={`text-[10px] px-2 py-1 rounded-full border ${p.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}`}>{p.is_active ? "Tersedia" : "Habis"}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <MenuPreviewGrid />
 
       {/* Architecture strip */}
       <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-4">

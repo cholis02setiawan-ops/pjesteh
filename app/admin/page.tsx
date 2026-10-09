@@ -5,6 +5,8 @@ import type { Product, Outlet, DepositPolicy } from "@/lib/data";
 import { formatIDR } from "@/lib/money";
 import { isLoggedIn, currentUser, logout, hasOwner, getOwner, changePassword, resetAll } from "@/lib/auth";
 import { loadProducts, saveProducts, loadOutlets, saveOutlets, loadPolicies, savePolicies, exportAll, importAll } from "@/lib/store";
+import { ProductImage } from "@/lib/ProductImage";
+import { ImageEditor } from "@/components/ImageEditor";
 
 const tabs = ["Jurnal", "Laporan", "Menu & Stok", "Outlet", "Kebijakan DP", "Shift & Kas", "Pengaturan"] as const;
 
@@ -25,6 +27,7 @@ export default function Admin() {
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [importJson, setImportJson] = useState("");
+  const [showImageEditor, setShowImageEditor] = useState(false);
 
   useEffect(()=>{
     setLogged(isLoggedIn());
@@ -201,21 +204,36 @@ export default function Admin() {
               <input placeholder="SKU" value={newProduct.sku} onChange={e=>setNewProduct(s=>({...s, sku:e.target.value}))} className="rounded-full border px-3 py-2" />
               <input type="number" placeholder="Harga" value={newProduct.price} onChange={e=>setNewProduct(s=>({...s, price: Number(e.target.value)}))} className="rounded-full border px-3 py-2" />
               <input placeholder="Kategori" value={newProduct.category} onChange={e=>setNewProduct(s=>({...s, category:e.target.value}))} className="rounded-full border px-3 py-2" />
-              <input placeholder="Emoji" value={newProduct.image} onChange={e=>setNewProduct(s=>({...s, image:e.target.value}))} className="rounded-full border px-3 py-2" />
+              <input placeholder="Emoji / URL gambar" value={newProduct.image} onChange={e=>setNewProduct(s=>({...s, image:e.target.value}))} className="rounded-full border px-3 py-2" />
               <button onClick={addProduct} className="rounded-full bg-teal-700 text-white px-4 py-2 font-semibold">+ Tambah</button>
             </div>
           </div>
+
+          <ImageEditor
+            value={newProduct.image}
+            onChange={(v)=>setNewProduct(s=>({...s, image:v}))}
+          />
 
           <div className="grid gap-2">
             {products.map(p=>(
               <div key={p.id} className="rounded-2xl border border-stone-200 bg-white p-3">
                 {editingProduct?.id===p.id ? (
+                  <div>
+                  {showImageEditor && (
+                    <div className="mb-2">
+                      <ImageEditor
+                        value={editingProduct.image}
+                        onChange={(v)=>setEditingProduct({...editingProduct, image:v})}
+                      />
+                    </div>
+                  )}
                   <div className="grid sm:grid-cols-6 gap-2 text-sm">
                     <input value={editingProduct.name} onChange={e=>setEditingProduct({...editingProduct, name:e.target.value})} className="rounded-full border px-3 py-2" />
                     <input value={editingProduct.sku} onChange={e=>setEditingProduct({...editingProduct, sku:e.target.value})} className="rounded-full border px-3 py-2" />
                     <input type="number" value={editingProduct.price} onChange={e=>setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="rounded-full border px-3 py-2" />
                     <input value={editingProduct.category} onChange={e=>setEditingProduct({...editingProduct, category:e.target.value})} className="rounded-full border px-3 py-2" />
                     <input value={editingProduct.image} onChange={e=>setEditingProduct({...editingProduct, image:e.target.value})} className="rounded-full border px-3 py-2" />
+                    <button type="button" onClick={()=>setShowImageEditor(true)} className="rounded-full border bg-white px-3 py-2">Gambar…</button>
                     <div className="flex gap-1">
                       <button onClick={saveProductEdits} className="flex-1 rounded-full bg-teal-700 text-white px-3 py-2">Simpan</button>
                       <button onClick={()=>setEditingProduct(null)} className="flex-1 rounded-full border px-3 py-2">Batal</button>
@@ -225,9 +243,10 @@ export default function Admin() {
                       <input type="number" value={editingProduct.durability_minutes} onChange={e=>setEditingProduct({...editingProduct, durability_minutes: Number(e.target.value)})} className="rounded-full border px-3 py-1 text-xs w-32" placeholder="Tahan menit" />
                     </div>
                   </div>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <div className="text-2xl">{p.image}</div>
+                    <ProductImage src={p.image} emoji={p.image} alt={p.name} rounded="" className="h-12 w-12 shrink-0" />
                     <div className="flex-1">
                       <div className="font-semibold text-sm">{p.name} <span className="font-normal text-xs text-stone-500">· {p.sku} · {p.category} · {p.durability_minutes} menit</span></div>
                       <div className="text-sm font-bold">{formatIDR(p.price)} <span className={`text-xs px-2 py-0.5 rounded-full border ml-2 ${p.is_active?"bg-emerald-50 border-emerald-200 text-emerald-700":"bg-red-50 border-red-200 text-red-700"}`}>{p.is_active?"Tersedia":"Nonaktif"}</span></div>

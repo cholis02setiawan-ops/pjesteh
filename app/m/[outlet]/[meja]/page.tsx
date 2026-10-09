@@ -1,18 +1,29 @@
 "use client";
-import { useState, useMemo } from "react";
-import { products, variants, modifiers } from "@/lib/data";
+import { useState, useMemo, useEffect } from "react";
+import { variants, modifiers } from "@/lib/data";
+import type { Product } from "@/lib/data";
+import { loadProducts } from "@/lib/store";
 import { formatIDR } from "@/lib/money";
+import { ProductImage } from "@/lib/ProductImage";
 
 type CartLine = { productId: string; variantId: string; mods: string[]; qty: number; note?: string };
 
 export default function QRMenu() {
   const outlet = "KRW01";
   const meja = "M03";
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<Record<string, string>>({});
   const [selectedMods, setSelectedMods] = useState<Record<string, string[]>>({});
   const [showTracker, setShowTracker] = useState(false);
   const [payMode, setPayMode] = useState<"QRIS"|"CASH">("QRIS");
+
+  useEffect(() => {
+    setProducts(loadProducts());
+    const onStore = () => setProducts(loadProducts());
+    window.addEventListener("focus", onStore);
+    return () => window.removeEventListener("focus", onStore);
+  }, []);
 
   const subtotal = useMemo(() => cart.reduce((sum, l) => {
     const p = products.find(x=>x.id===l.productId)!;
@@ -85,7 +96,7 @@ export default function QRMenu() {
               return (
                 <div key={p.id} className="rounded-2xl border border-stone-200 bg-white p-3">
                   <div className="flex gap-3">
-                    <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-amber-50 to-teal-50 flex items-center justify-center text-2xl">{p.image}</div>
+                    <ProductImage src={p.image} emoji={p.image} alt={p.name} className="h-16 w-16 shrink-0" />
                     <div className="flex-1">
                       <div className="font-semibold text-sm leading-tight">{p.name}</div>
                       <div className="text-xs text-stone-500">{p.category} · {p.sku}</div>

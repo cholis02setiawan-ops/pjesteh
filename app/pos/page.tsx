@@ -1,11 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { products, variants } from "@/lib/data";
+import { variants } from "@/lib/data";
+import type { Product } from "@/lib/data";
+import { loadProducts } from "@/lib/store";
 import { formatIDR } from "@/lib/money";
+import { ProductImage } from "@/lib/ProductImage";
 
 type Tx = { localRef: string; idempotencyKey: string; total: number; method: string; at: string; synced: boolean };
 
 export default function POS() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [shiftOpen, setShiftOpen] = useState(true);
   const [openingFloat] = useState(500000);
   const [cart, setCart] = useState<{id:string; name:string; price:number; qty:number}[]>([]);
@@ -19,12 +23,15 @@ export default function POS() {
   const [drawer, setDrawer] = useState(740000);
 
   useEffect(()=>{
+    setProducts(loadProducts());
+    const onStore = () => setProducts(loadProducts());
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     setOnline(navigator.onLine);
-    return ()=>{ window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+    window.addEventListener("focus", onStore);
+    return ()=>{ window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); window.removeEventListener("focus", onStore); };
   },[]);
   useEffect(()=>{ localStorage.setItem("pos_queue", JSON.stringify(queue)); },[queue]);
 
@@ -70,7 +77,7 @@ export default function POS() {
                     return [...c, {id:p.id, name:p.name, price:p.price, qty:1}];
                   });
                 }} className="text-left rounded-2xl border border-stone-200 bg-gradient-to-br from-white to-stone-50 p-3 hover:border-teal-300 transition">
-                  <div className="text-xl">{p.image}</div>
+                  <ProductImage src={p.image} emoji={p.image} alt={p.name} rounded="" className="h-16 w-full mb-1" />
                   <div className="font-semibold text-sm leading-tight mt-1">{p.name}</div>
                   <div className="text-xs text-stone-500">{p.sku}</div>
                   <div className="font-bold text-sm mt-1">{formatIDR(p.price)}</div>
