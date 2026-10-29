@@ -15,8 +15,8 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
-    "@prisma/client": "^6",
-    "prisma": "^6"
+    "@prisma/client": "^7",
+    "prisma": "^7"
   },
   "devDependencies": {
     "typescript": "^5",
